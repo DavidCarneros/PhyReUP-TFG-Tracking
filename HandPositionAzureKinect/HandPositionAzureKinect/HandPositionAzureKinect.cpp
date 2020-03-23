@@ -1,22 +1,42 @@
 // HandPositionAzureKinect.cpp : Este archivo contiene la función "main". La ejecución del programa comienza y termina ahí.
 //
+//#include <Windows.h>
 #include <assert.h>
 #include <iostream>
+
 
 #include <k4a/k4a.hpp>
 #include <k4abt.hpp>
 
+#include <winsock.h>
 #include <string.h>
+#include <queue>
+#include <thread>
+#include <condition_variable>
+
+#include "definitions.h"
+#include "UDPClient.hpp"
+#include "SemCounter.hpp"
 
 void print_body_information(k4abt_body_t body);
+//void print_hands_position(k4abt_body_t body, SOCKET UDPSocketClient, struct sockaddr_in UDPServer);
 void print_hands_position(k4abt_body_t body);
 void print_joint_information(const char* hand, k4a_float3_t position, k4a_quaternion_t orientation, k4abt_joint_confidence_level_t confidence_level);
+void updClient_thread();
+
+UDPClient udpClient;
+//std::queue<hands_data_t> hand_data_queue;
+
 
 int main()
 {
+	//sem.wait();
 	std::cout << "Starting application!" << std::endl;
 
 	try {
+		udpClient.start_client("192.168.1.62", 5555);
+		// std::thread udp_client_thread(updClient_thread);
+		
 		// configuracion 
 		k4a_device_configuration_t device_config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
 		device_config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
@@ -29,6 +49,7 @@ int main()
 		k4a::calibration sensor_calibration = device.get_calibration(device_config.depth_mode, device_config.color_resolution);
 		k4abt::tracker tracker = k4abt::tracker::create(sensor_calibration);
 		std::cout << "Tracker created!" << std::endl;
+
 
 		int frame_count = 0;
 
@@ -51,12 +72,7 @@ int main()
 					uint32_t num_bodies = body_frame.get_num_bodies();
 					std::cout << num_bodies << " Bodies are detected! " << std::endl;
 
-					/*
-					for (uint32_t i = 0; i < num_bodies; i++) {
-						k4abt_body_t body = body_frame.get_body(i);
-						print_body_information(body);
-					}
-					*/
+				
 					if (num_bodies > 0) {
 						k4abt_body_t body = body_frame.get_body(0);
 						print_hands_position(body);
@@ -82,18 +98,40 @@ int main()
 
 		} while (frame_count < 100);
 		std::cout << "Finished body tracking processing!" << std::endl;
-
+		 
 	}
 	catch (const std::exception & e) {
 		std::cerr << "Failed with exception: " << std::endl
 			<< "  " << e.what() << std::endl;
 		return 1;
 	}
-
+	
 	return 0;
 }
 
-void print_hands_position(k4abt_body_t body) {
+/*
+void updClient_thread() {
+	struct hands_data_t aux;
+	std::cout << "Antes primer wait hilo" << std::endl;
+//	try {
+		while (1) {
+			std::cout << "Antes wait " << std::endl;
+			//sem.wait();
+			std::cout << "despues wait" << std::endl;
+			aux = hand_data_queue.front();
+			hand_data_queue.pop();
+			udpClient.send_hands_data(aux);
+		}
+//	}
+//	catch (std::exception& e) {
+//		std::cout << e.what() << std::endl;
+//	}
+
+}
+*/
+
+//void print_hands_position(k4abt_body_t body, SOCKET UDPSocketClient, struct sockaddr_in UDPServer){
+void print_hands_position(k4abt_body_t body){
 
 	k4a_float3_t hand_right_position = body.skeleton.joints[K4ABT_JOINT_HAND_RIGHT].position;
 	k4a_float3_t hand_left_position = body.skeleton.joints[K4ABT_JOINT_HAND_LEFT].position;
@@ -103,6 +141,20 @@ void print_hands_position(k4abt_body_t body) {
 
 	k4abt_joint_confidence_level_t hand_right_confidence_level = body.skeleton.joints[K4ABT_JOINT_HAND_RIGHT].confidence_level;
 	k4abt_joint_confidence_level_t hand_left_confidence_level = body.skeleton.joints[K4ABT_JOINT_HAND_LEFT].confidence_level;
+	
+	hands_data_t hand_data;
+	hand_data.hand_right_position = hand_right_position;
+	hand_data.hand_left_position = hand_left_position;
+	hand_data.hand_right_orientation = hand_right_orientation;
+	hand_data.hand_left_orientation = hand_left_orientation;
+	hand_data.hand_right_confidence_level = hand_right_confidence_level;
+	hand_data.hand_left_confidence_level = hand_left_confidence_level;
+
+	//hand_data_queue.push(hand_data);
+	//sem.signal();
+	//sendto(UDPSocketClient, (char*)&hand_data, sizeof(hand_data), MSG_DONTROUTE, (SOCKADDR*)&UDPServer, sizeof(UDPServer));
+	//sendto(UDPSocketClient, prueba, strlen(prueba), MSG_DONTROUTE, (SOCKADDR*)&UDPServer, sizeof(UDPServer));
+	udpClient.send_hands_data(hand_data);
 
 	print_joint_information("Right", hand_right_position, hand_right_orientation, hand_right_confidence_level);
 	print_joint_information("Left", hand_left_position, hand_left_orientation, hand_left_confidence_level);
