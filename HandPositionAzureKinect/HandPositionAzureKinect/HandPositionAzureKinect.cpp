@@ -34,7 +34,7 @@ int main()
 	std::cout << "Starting application!" << std::endl;
 
 	try {
-		udpClient.start_client("192.168.1.62", 5555);
+		udpClient.start_client("192.168.1.43", 8000);
 		// std::thread udp_client_thread(updClient_thread);
 		
 		// configuracion 
@@ -96,7 +96,7 @@ int main()
 			}
 
 
-		} while (frame_count < 100);
+		} while (1);
 		std::cout << "Finished body tracking processing!" << std::endl;
 		 
 	}
@@ -135,13 +135,29 @@ void print_hands_position(k4abt_body_t body){
 
 	k4a_float3_t hand_right_position = body.skeleton.joints[K4ABT_JOINT_HAND_RIGHT].position;
 	k4a_float3_t hand_left_position = body.skeleton.joints[K4ABT_JOINT_HAND_LEFT].position;
+	k4a_float3_t head_position = body.skeleton.joints[K4ABT_JOINT_NOSE].position;
+	k4a_float3_t right_eye_position = body.skeleton.joints[K4ABT_JOINT_EYE_RIGHT].position;
+	k4a_float3_t left_eye_position = body.skeleton.joints[K4ABT_JOINT_EYE_LEFT].position;
+
+	k4a_float3_t middle_point;
+	float middle[3];
+	middle[0] = (right_eye_position.v[0] + left_eye_position.v[0]) / 2;
+	middle[1] = (right_eye_position.v[1] + left_eye_position.v[1]) / 2;
+	middle[2] = (right_eye_position.v[2] + left_eye_position.v[2]) / 2;
+
+
+	float rigth_hand_vector[3] = { middle[0] - hand_right_position.v[0], middle[1] - hand_right_position.v[1], middle[2] - hand_right_position.v[2] };
+	float left_hand_vector[3] = { 1,2,3 };
 
 	k4a_quaternion_t hand_right_orientation = body.skeleton.joints[K4ABT_JOINT_HAND_RIGHT].orientation;
 	k4a_quaternion_t hand_left_orientation = body.skeleton.joints[K4ABT_JOINT_HAND_LEFT].orientation;
 
 	k4abt_joint_confidence_level_t hand_right_confidence_level = body.skeleton.joints[K4ABT_JOINT_HAND_RIGHT].confidence_level;
 	k4abt_joint_confidence_level_t hand_left_confidence_level = body.skeleton.joints[K4ABT_JOINT_HAND_LEFT].confidence_level;
-	
+
+	hands_data_t hand_data;
+	hand_data.hand_right_confidence_level = hand_right_confidence_level;
+	/*
 	hands_data_t hand_data;
 	hand_data.hand_right_position = hand_right_position;
 	hand_data.hand_left_position = hand_left_position;
@@ -149,15 +165,15 @@ void print_hands_position(k4abt_body_t body){
 	hand_data.hand_left_orientation = hand_left_orientation;
 	hand_data.hand_right_confidence_level = hand_right_confidence_level;
 	hand_data.hand_left_confidence_level = hand_left_confidence_level;
-
+	*/
 	//hand_data_queue.push(hand_data);
 	//sem.signal();
 	//sendto(UDPSocketClient, (char*)&hand_data, sizeof(hand_data), MSG_DONTROUTE, (SOCKADDR*)&UDPServer, sizeof(UDPServer));
 	//sendto(UDPSocketClient, prueba, strlen(prueba), MSG_DONTROUTE, (SOCKADDR*)&UDPServer, sizeof(UDPServer));
-	udpClient.send_hands_data(hand_data);
+	udpClient.send_hands_data(hand_data,rigth_hand_vector);
 
-	print_joint_information("Right", hand_right_position, hand_right_orientation, hand_right_confidence_level);
-	print_joint_information("Left", hand_left_position, hand_left_orientation, hand_left_confidence_level);
+	//print_joint_information("Right", hand_right_position, hand_right_orientation, hand_right_confidence_level);
+	//print_joint_information("Left", hand_left_position, hand_left_orientation, hand_left_confidence_level);
 
 }
 
