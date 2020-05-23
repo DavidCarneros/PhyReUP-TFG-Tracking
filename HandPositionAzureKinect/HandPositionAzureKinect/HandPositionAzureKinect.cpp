@@ -34,7 +34,7 @@ int main()
 	std::cout << "Starting application!" << std::endl;
 
 	try {
-		udpClient.start_client("192.168.1.43", 8000);
+		udpClient.start_client("192.168.1.43",  8000);
 		// std::thread udp_client_thread(updClient_thread);
 		
 		// configuracion 
@@ -44,9 +44,13 @@ int main()
 		k4a::device device = k4a::device::open(0);
 		std::cout << "Device Open!" << std::endl;
 		device.start_cameras(&device_config);
-		std::cout << "Cameras started! " << std::endl;
+		std::cout << "Cameras started! " << std::endl; 
 
 		k4a::calibration sensor_calibration = device.get_calibration(device_config.depth_mode, device_config.color_resolution);
+		k4abt_tracker_configuration_t config;
+		config.gpu_device_id = 0;
+		config.processing_mode = K4ABT_TRACKER_PROCESSING_MODE_GPU;
+		config.sensor_orientation = K4ABT_SENSOR_ORIENTATION_FLIP180;
 		k4abt::tracker tracker = k4abt::tracker::create(sensor_calibration);
 		std::cout << "Tracker created!" << std::endl;
 
@@ -146,7 +150,9 @@ void print_hands_position(k4abt_body_t body){
 	middle[2] = (right_eye_position.v[2] + left_eye_position.v[2]) / 2;
 
 
-	float rigth_hand_vector[3] = { middle[0] - hand_right_position.v[0], middle[1] - hand_right_position.v[1], middle[2] - hand_right_position.v[2] };
+	//float rigth_hand_vector[3] = { middle[0] - hand_right_position.v[0], middle[1] - hand_right_position.v[1], middle[2] - hand_right_position.v[2] };
+	float rigth_hand_vector[3] = {-1 * hand_right_position.v[0], -1 *  hand_right_position.v[1], -1 * hand_right_position.v[2] };
+	
 	float left_hand_vector[3] = { 1,2,3 };
 
 	k4a_quaternion_t hand_right_orientation = body.skeleton.joints[K4ABT_JOINT_HAND_RIGHT].orientation;
@@ -170,7 +176,7 @@ void print_hands_position(k4abt_body_t body){
 	//sem.signal();
 	//sendto(UDPSocketClient, (char*)&hand_data, sizeof(hand_data), MSG_DONTROUTE, (SOCKADDR*)&UDPServer, sizeof(UDPServer));
 	//sendto(UDPSocketClient, prueba, strlen(prueba), MSG_DONTROUTE, (SOCKADDR*)&UDPServer, sizeof(UDPServer));
-	udpClient.send_hands_data(hand_data,rigth_hand_vector);
+	udpClient.send_hands_data(hand_data,rigth_hand_vector, hand_right_orientation);
 
 	//print_joint_information("Right", hand_right_position, hand_right_orientation, hand_right_confidence_level);
 	//print_joint_information("Left", hand_left_position, hand_left_orientation, hand_left_confidence_level);

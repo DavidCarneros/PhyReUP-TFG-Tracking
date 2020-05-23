@@ -13,8 +13,8 @@ public:
 	UDPClient();
 	~UDPClient();
 	//void send_hands_data(hands_data_t hands_data);
-	void send_hands_data(hands_data_t hands_data, float *hand_vector);
-	void start_client(const char* ipAddr, int port);
+	void send_hands_data(hands_data_t hands_data, float* hand_vector, k4a_quaternion_t orientation);
+		void start_client(const char* ipAddr, int port);
 	char* storePrintf(const char* fmt, ...);
 };
 
@@ -57,7 +57,7 @@ void UDPClient::start_client(const char* ipAddr, int port) {
 }
 
 
-void UDPClient::send_hands_data(hands_data_t hands_data, float * hand_vector) {
+void UDPClient::send_hands_data(hands_data_t hands_data, float * hand_vector, k4a_quaternion_t ori) {
 
 	float x = (hand_vector[0]/1000);
 	float y = (hand_vector [1]/1000);
@@ -67,8 +67,8 @@ void UDPClient::send_hands_data(hands_data_t hands_data, float * hand_vector) {
 	//std::cout << "HAND X: " << head.v[0] << " -- " << head.v[1] << " -- " << head.v[2] << std::endl;
 	//std::cout << "HEAD X: " << hands_data.hand_right_position.v[0] << " -- " << hands_data.hand_right_position.v[1] << " -- " << hands_data.hand_right_position.v[2] << std::endl;
 
-	const char* json_struct = "{\"right\":{\"x\":%f,\"y\":%f,\"z\":%f},\"right_level\":%d}";
-	char* json_send = storePrintf(json_struct,x,y,z,hands_data.hand_right_confidence_level);
+	const char* json_struct = "{\"right\":{\"x\":%f,\"y\":%f,\"z\":%f},\"right_level\":%d,\"q_right\":{\"w\":%f,\"x\":%f,\"y\":%f,\"z\":%f}}";
+	char* json_send = storePrintf(json_struct,x,y,z,hands_data.hand_right_confidence_level,ori.v[0],ori.v[1],ori.v[2],ori.v[3]);
 
 	sendto(UDPSocketClient, json_send, strlen(json_send), MSG_DONTROUTE, (SOCKADDR*)&UDPServer, sizeof(UDPServer));
 
